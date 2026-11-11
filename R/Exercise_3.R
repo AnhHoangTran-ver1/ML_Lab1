@@ -31,14 +31,13 @@ miscl_error <- mean(df$pred != df$diabetes)
 miscl_error
 
 # Report the probabilistic equation of the estimated model
-# Report the probabilistic equation of the estimated model
 w <- coef(fit)
 w0 <- w["(Intercept)"]
 w1 <- w["glucose"]
 w2 <- w["age"]
 
 cat(sprintf(
-  "p(y=1 | x1, x2) = 1 / (1 + exp(-(%.4f + %.4f*x1 + %.4f*x2)))\n",
+  "p(y = 1 | x1, x2) = 1 / (1 + exp(-(%.4f + %.4f*x1 + %.4f*x2)))\n",
   w0, w1, w2))
 cat("where x1 = plasma glucose, x2 = age, and y ~ Bernoulli(p)\n")
 cat("Predict Diabetes = 1 if p > 0.5, i.e. if",
@@ -52,8 +51,17 @@ ggplot(df, aes(x = age, y = glucose, color = pred)) +
   theme_minimal()
 
 # Comments regarding the results 
+# The training misclassification error is 0.263, so about 26.3% of the observation 
+# are classified incorrectly 
+# Both glucose and age have positive coefficients so higher glucose and higher age 
+# increase the predicted probability of diabetes. Glucose has stronger effect.
+# The confusion matrix shows 138 true "Yes" cases predicted as "No" and 64 true "No"
+# cases predicted as as "Yes". Thus it is more common to mistake "Yes" to "No" than t
+# the opposite.
+# In the predicted values plot the colors are separated by a straight line, while 
+# the true classes in the first plot overlap heavily. A linear decision boundary 
+# based on only glucose and age cannot separate the classes well, so the quality 
+# of the classification is only moderate. This is why a more flexible model like
+# basic function expansion is motivated. 
 
-
-# Assignment 4: Theory
-# Part 2
 
