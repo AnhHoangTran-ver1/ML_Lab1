@@ -31,6 +31,18 @@ miscl_error <- mean(df$pred != df$diabetes)
 miscl_error
 
 # Report the probabilistic equation of the estimated model
+# Report the probabilistic equation of the estimated model
+w <- coef(fit)
+w0 <- w["(Intercept)"]
+w1 <- w["glucose"]
+w2 <- w["age"]
+
+cat(sprintf(
+  "p(y=1 | x1, x2) = 1 / (1 + exp(-(%.4f + %.4f*x1 + %.4f*x2)))\n",
+  w0, w1, w2))
+cat("where x1 = plasma glucose, x2 = age, and y ~ Bernoulli(p)\n")
+cat("Predict Diabetes = 1 if p > 0.5, i.e. if",
+    sprintf("%.4f + %.4f*x1 + %.4f*x2 > 0\n", w0, w1, w2))
 
 # Scatterplot with predicted classes as color
 ggplot(df, aes(x = age, y = glucose, color = pred)) +
