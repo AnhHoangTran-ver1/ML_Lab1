@@ -64,4 +64,23 @@ ggplot(df, aes(x = age, y = glucose, color = pred)) +
 # of the classification is only moderate. This is why a more flexible model like
 # basic function expansion is motivated. 
 
+# Part 3
+# a) Equation of the decision boundary
+cat(sprintf("Decision boundary: glucose = %.4f + %.4f * age\n",
+            -w0 / w1, -w2 / w1))
+
+# b) Add the boundary to the scatterplot from step 2
+ggplot(df, aes(x = age, y = glucose, color = pred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(intercept = unname(-w0 / w1), slope = unname(-w2 / w1),
+              color = "black", linewidth = 1) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+
+# Here we can see that the boundary is a straight line and the true classes 
+# overlap on both sides of it. So it does not seem to catch the data distribution
+# well since there are many misclassed points 
+
+
 
