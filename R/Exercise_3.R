@@ -82,5 +82,31 @@ ggplot(df, aes(x = age, y = glucose, color = pred)) +
 # overlap on both sides of it. So it does not seem to catch the data distribution
 # well since there are many misclassed points 
 
+# Part 4 
+plot_threshold <- function(r) {
+  pred_r <- factor(ifelse(prob > r, "Yes", "No"), levels = c("No", "Yes"))
+  cat("Threshold r =", r, "\n")
+  print(table(Predicted = pred_r, Actual = df$diabetes))
+  cat("Misclassification error:", mean(pred_r != df$diabetes), "\n\n")
+  
+  ggplot(df, aes(x = age, y = glucose, color = pred_r)) +
+    geom_point(alpha = 0.7) +
+    geom_abline(intercept = unname((log(r / (1 - r)) - w0) / w1),
+                slope = unname(-w2 / w1), color = "black", linewidth = 1) +
+    labs(title = paste("Threshold r =", r),
+         x = "Age (years)", y = "Plasma glucose concentration",
+         color = "Predicted diabetes") +
+    theme_minimal()
+}
+
+# The boundary line keeps the same slope and only shifts. For a smaller r, the 
+# model predicts "yes" more easily so more points are predicted as "yes". On the 
+# other hand, when r gets bigger, very few "yes" predictions so many true "yes" 
+# are missed
+
+
+
+
+
 
 
