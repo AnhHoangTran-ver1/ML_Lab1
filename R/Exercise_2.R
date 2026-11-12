@@ -2,7 +2,7 @@ library(ggplot2)
 library(caret)
 
 
-data = read.csv("~/Desktop/semester1/ML/labs/lab1/parkinsons.csv", header = TRUE)
+data = read.csv("/Users/tatevhakobyan/Desktop/semester1/ML/labs/ML_Lab1/parkinsons.csv", header = TRUE)
 head(data)
 summary(data)
 colnames(data)
@@ -67,7 +67,6 @@ print(paste("Test MSE:", test_mse))
 
 # loglikelihood
 
-
 Loglikelihood <- function(theta, sigma) {
   X <- as.matrix(trainS[, colnames(trainS) != "motor_UPDRS"])
   y <- trainS$motor_UPDRS
@@ -81,8 +80,56 @@ Ridge <- function(theta, sigma, lambda) {
   -Loglikelihood(theta, sigma) + lambda * sum(theta^2)
 }
 
+RidgeOpt <- function(lambda) {
+  obj <- function(par) Ridge(par[1:p], par[p + 1], lambda)
+  start <- c(rep(0, p), 1)
+  opt <- optim(par = start, fn = obj, method = "BFGS")
+  list(theta = opt$par[1:p],
+       sigma = opt$par[p + 1],
+       value = opt$value,
+       convergence = opt$convergence)
+}
+
+# degrees of freedom
+
+DF <- function(lambda) {
+  H <- X %*% solve(t(X) %*% X + lambda * diag(p)) %*% t(X)
+  sum(diag(H))
+}
+
 # Part 4
 # Ridge regression
 
+X <- as.matrix(trainS[, colnames(trainS) != "motor_UPDRS"])
+y <- trainS[, "motor_UPDRS"]
+n <- nrow(X)
+p <- ncol(X)
+
+# test data in the same form as training data
+Xtest <- as.matrix(testS[, colnames(testS) != "motor_UPDRS"])
+ytest <- testS[, "motor_UPDRS"]
+
+lambdas <- c(1, 100, 1000)
+
+results <- data.frame(lambda = lambdas,
+                      train_MSE = NA, test_MSE = NA, DF = NA, sigma = NA)
+
+thetas <- list()
+
+for (i in seq_along(lambdas)) {
+  fit <- RidgeOpt(lambdas[i])
+  theta <- fit$theta
+  thetas[[i]] <- theta
+  
+  pred_train <- X %*% theta
+  pred_test  <- Xtest %*% theta
+  
+  results$train_MSE[i] <- mean((y - pred_train)^2)
+  results$test_MSE[i]  <- mean((ytest - pred_test)^2)
+  results$DF[i]        <- DF(lambdas[i])
+  results$sigma[i]     <- fit$sigma
+}
+
+print(results)
 
 
