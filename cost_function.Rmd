@@ -1,0 +1,28 @@
+---
+title: "Cost function of linear regression"
+output: html_document
+---
+
+## Cost function (p. 44)
+
+Based on the chosen loss function, we also define the cost function as the average loss over the training data. Training a model then amounts to finding the parameter values that minimise the cost.
+
+$$
+J(\boldsymbol{\theta}) = \frac{1}{n}\sum_{i=1}^{n} L\big(\hat{y}(\mathbf{x}_i;\boldsymbol{\theta}),\, y_i\big)
+$$
+
+## Matrix form (p. 45, equation 3.11)
+
+The matrix form of the cost function for the linear regression model is the following:
+
+$$
+\begin{aligned}
+J(\boldsymbol{\theta})
+&= \frac{1}{n}\sum_{i=1}^{n}\big(\hat{y}(\mathbf{x}_i;\boldsymbol{\theta}) - y_i\big)^2
+ = \frac{1}{n}\lVert \hat{\mathbf{y}} - \mathbf{y} \rVert_2^2 \\
+&= \frac{1}{n}\lVert \mathbf{X}\boldsymbol{\theta} - \mathbf{y} \rVert_2^2
+ = \frac{1}{n}\lVert \boldsymbol{\epsilon} \rVert_2^2,
+\end{aligned}
+$$
+
+where $\lVert \cdot \rVert_2$ denotes the usual Euclidean vector norm and $\lVert \cdot \rVert_2^2$ its square, and $\boldsymbol{\epsilon} = \hat{\mathbf{y}} - \mathbf{y}$ is the vector of residuals.
