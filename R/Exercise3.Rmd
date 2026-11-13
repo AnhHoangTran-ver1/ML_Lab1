@@ -1,0 +1,211 @@
+---
+title: "Exercise 3: Logistic regression and basis function expansion"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = 7, fig.height = 5)
+library(ggplot2)
+```
+
+# Data
+
+The file `pima-indians-diabetes.csv` has no header row, so the columns are named in the order given in the assignment. The target `diabetes` is converted to a factor.
+
+```{r data, include=FALSE}
+df <- read.csv("/Users/hoanganh/Machine_Learning/Machine_Learning_lab1/pima-indians-diabetes.csv", header = FALSE)
+names(df) <- c("pregnant", "glucose", "bp", "triceps",
+               "insulin", "bmi", "pedigree", "age", "diabetes")
+df$diabetes <- factor(df$diabetes, levels = c(0, 1),
+                      labels = c("No", "Yes"))
+```
+
+# Question 1: Scatterplot of glucose on age
+
+```{r q1}
+ggplot(df, aes(x = age, y = glucose, color = diabetes)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Diabetes") +
+  theme_minimal()
+```
+
+Diabetes does not seem easy to classify with a standard logistic regression using only glucose and age. The classes overlap heavily: "Yes" and "No" points are mixed across the same age and glucose ranges. Higher glucose gives more "Yes" cases, but there is no clear separation, and a logistic regression can only produce a linear decision boundary.
+
+# Question 2: Logistic regression with glucose and age
+
+The model is trained with $y$ = Diabetes as target, $x_1$ = plasma glucose and $x_2$ = age as features. Predictions for all observations use the threshold $r = 0.5$.
+
+```{r q2-fit, include=FALSE}
+fit <- glm(diabetes ~ glucose + age, data = df, family = binomial)
+
+r <- 0.5
+prob <- predict(fit, type = "response")
+df$pred <- factor(ifelse(prob > r, "Yes", "No"), levels = c("No", "Yes"))
+
+w  <- coef(fit)
+w0 <- unname(w["(Intercept)"])
+w1 <- unname(w["glucose"])
+w2 <- unname(w["age"])
+```
+
+## Probabilistic equation of the estimated model
+
+The model assumes $y \mid x_1, x_2 \sim \text{Bernoulli}(\hat{p})$, where
+
+$$
+\hat{p}(y = 1 \mid x_1, x_2) = \frac{1}{1 + \exp\left(-(`r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2)\right)}
+$$
+
+Equivalently, on the log-odds scale,
+
+$$
+\log\frac{\hat{p}}{1 - \hat{p}} = `r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2 .
+$$
+
+An observation is classified as Diabetes = 1 (Yes) if $\hat{p} > 0.5$, which is the same as $`r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2 > 0$.
+
+## Training misclassification error
+
+```{r q2-error}
+conf <- table(Predicted = df$pred, Actual = df$diabetes)
+conf
+miscl_error <- mean(df$pred != df$diabetes)
+miscl_error
+```
+
+## Scatterplot with predicted classes
+
+```{r q2-plot}
+ggplot(df, aes(x = age, y = glucose, color = pred)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+
+- The training misclassification error is `r round(miscl_error, 3)`, so about `r round(100 * miscl_error, 1)`% of the observations are classified incorrectly.
+- Both glucose and age have positive coefficients, so higher glucose and higher age increase the predicted probability of diabetes. Glucose appears to have the stronger effect (larger z-value in `summary(fit)`).
+- The confusion matrix shows `r conf["No", "Yes"]` true "Yes" cases predicted as "No" and `r conf["Yes", "No"]` true "No" cases predicted as "Yes". Thus it is more common to mistake "Yes" for "No" than the opposite.
+- In the predicted-values plot the colors are separated by a straight line, while the true classes in the first plot overlap heavily. A linear decision boundary based on only glucose and age cannot separate the classes well, so the quality of the classification is only moderate. This is why a more flexible model, such as a basis function expansion, is motivated.
+
+# Question 3: Decision boundary
+
+## a) Equation of the decision boundary
+
+The boundary is where $\hat{p} = 0.5$, i.e. $\hat{w}_0 + \hat{w}_1 x_1 + \hat{w}_2 x_2 = 0$. Solving for glucose ($x_1$) as a function of age ($x_2$):
+
+$$
+x_1 = -\frac{\hat{w}_0}{\hat{w}_1} - \frac{\hat{w}_2}{\hat{w}_1}\,x_2
+= `r sprintf("%.4f", -w0 / w1)` + (`r sprintf("%.4f", -w2 / w1)`)\,x_2 .
+$$
+
+## b) Boundary added to the scatterplot
+
+```{r q3-plot}
+ggplot(df, aes(x = age, y = glucose, color = pred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(intercept = -w0 / w1, slope = -w2 / w1,
+              color = "black", linewidth = 1) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+The boundary is a straight line and the true classes overlap on both sides of it. So it does not seem to capture the data distribution well, since there are many misclassified points.
+
+# Question 4: Thresholds r = 0.2 and r = 0.8
+
+For a general threshold $r$, an observation is predicted "Yes" when $\hat{p} > r$, which is equivalent to $\hat{w}_0 + \hat{w}_1 x_1 + \hat{w}_2 x_2 > \log\frac{r}{1-r}$. The boundary line therefore keeps the same slope and only its intercept changes.
+
+```{r q4}
+plot_threshold <- function(r) {
+  pred_r <- factor(ifelse(prob > r, "Yes", "No"), levels = c("No", "Yes"))
+  cat("Threshold r =", r, "\n")
+  print(table(Predicted = pred_r, Actual = df$diabetes))
+  cat("Misclassification error:", mean(pred_r != df$diabetes), "\n\n")
+
+  ggplot(df, aes(x = age, y = glucose, color = pred_r)) +
+    geom_point(alpha = 0.7) +
+    geom_abline(intercept = (log(r / (1 - r)) - w0) / w1,
+                slope = -w2 / w1, color = "black", linewidth = 1) +
+    labs(title = paste("Threshold r =", r),
+         x = "Age (years)", y = "Plasma glucose concentration",
+         color = "Predicted diabetes") +
+    theme_minimal()
+}
+
+print(plot_threshold(0.2))
+print(plot_threshold(0.8))
+
+n_yes_02  <- sum(prob > 0.2)
+n_yes_05  <- sum(prob > 0.5)
+n_yes_08  <- sum(prob > 0.8)
+missed_02 <- sum(prob <= 0.2 & df$diabetes == "Yes")
+missed_08 <- sum(prob <= 0.8 & df$diabetes == "Yes")
+```
+
+The boundary line keeps the same slope and only shifts. For a smaller $r$, the model predicts "Yes" more easily, so more points are predicted as "Yes": `r n_yes_02` observations for $r = 0.2$, compared with `r n_yes_05` for $r = 0.5$. On the other hand, when $r$ gets bigger there are very few "Yes" predictions (`r n_yes_08` for $r = 0.8$), so many true "Yes" cases are missed (`r missed_08` missed for $r = 0.8$, compared with `r missed_02` for $r = 0.2$).
+
+# Question 5: Basis function expansion
+
+New features $z_1 = x_1^4$, $z_2 = x_1^3 x_2$, $z_3 = x_1^2 x_2^2$, $z_4 = x_1 x_2^3$, $z_5 = x_2^4$ are added to the data, and a logistic regression is trained with $x_1, x_2, z_1, \ldots, z_5$ as features.
+
+```{r q5-fit, warning=TRUE}
+add_features <- function(d) {
+  d$z1 <- d$glucose^4
+  d$z2 <- d$glucose^3 * d$age
+  d$z3 <- d$glucose^2 * d$age^2
+  d$z4 <- d$glucose   * d$age^3
+  d$z5 <- d$age^4
+  d
+}
+
+df5 <- add_features(df)
+
+fit5 <- glm(diabetes ~ glucose + age + z1 + z2 + z3 + z4 + z5,
+            data = df5, family = binomial)
+
+prob5 <- predict(fit5, type = "response")
+df5$pred5 <- factor(ifelse(prob5 > 0.5, "Yes", "No"), levels = c("No", "Yes"))
+
+conf5 <- table(Predicted = df5$pred5, Actual = df5$diabetes)
+conf5
+miscl_error5 <- mean(df5$pred5 != df5$diabetes)
+miscl_error5
+```
+
+## Scatterplot with the curved decision boundary
+
+The black curve is the contour where $\hat{p} = 0.5$.
+
+```{r q5-plot}
+grid <- expand.grid(
+  age     = seq(min(df5$age), max(df5$age), length.out = 200),
+  glucose = seq(min(df5$glucose), max(df5$glucose), length.out = 200))
+grid <- add_features(grid)
+grid$prob5 <- predict(fit5, newdata = grid, type = "response")
+
+ggplot(df5, aes(x = age, y = glucose, color = pred5)) +
+  geom_point(alpha = 0.7) +
+  geom_contour(data = grid, aes(x = age, y = glucose, z = prob5),
+               breaks = 0.5, color = "black", inherit.aes = FALSE) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+
+
+```{r q5-numbers, include=FALSE}
+wrong_lin <- sum(df$pred != df$diabetes)
+wrong_exp <- sum(df5$pred5 != df5$diabetes)
+```
+
+The training misclassification error is `r round(miscl_error5, 3)` for the model with the basis expansion, compared with `r round(miscl_error, 3)` for the linear model. So the accuracy improved slightly (`r wrong_lin - wrong_exp` fewer misclassified observations out of `r nrow(df)`). The model finds more of the true "Yes" cases (`r conf5["Yes", "Yes"]` instead of `r conf["Yes", "Yes"]` correct), while the number of false "Yes" predictions stays about the same (`r conf5["Yes", "No"]` vs `r conf["Yes", "No"]`).
+
+The decision boundary is no longer a straight line. It is curved and non-monotonic in age: young people need a high glucose value to be predicted "Yes", the threshold is lowest around age 45-50, and then it rises steeply for older ages. This lets the model follow the data distribution more closely.
+
+However, the improvement is small and the classes still overlap heavily, so many points remain misclassified. The flexible boundary also creates a spurious "Yes" region in the lower right, where there is almost no data, which indicates a risk of overfitting. Since this is a training error, the improvement may partly be overfitting, so the extra complexity is not clearly worth it.
