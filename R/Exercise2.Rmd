@@ -1,0 +1,119 @@
+---
+title: "Computer Lab 1, Assignment 2"
+subtitle: "Linear regression and ridge regression"
+output:
+  pdf_document:
+    toc: false
+geometry: margin=2.5cm
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.align = "center")
+library(caret)
+```
+
+# Assignment 2: Linear regression and ridge regression
+
+## 1. Data partitioning and scaling
+
+The data were split 60/40 into training and test sets with the code from Lecture 1a. They were then scaled with `preProcess`, using means and standard deviations from the **training data only**, applied to both sets. Only the 16 voice characteristics are used as features and `motor_UPDRS` as target. No intercept is used, since the data are centred. MSE values are in standardized units.
+
+```{r data, include=FALSE}
+data <- read.csv("/Users/tatevhakobyan/Desktop/semester1/ML/labs/ML_Lab1/parkinsons.csv", header = TRUE)
+
+set.seed(12345)
+n <- nrow(data)
+id <- sample(1:n, floor(n * 0.6))
+train <- data[id, ]
+test  <- data[-id, ]
+
+scaler <- preProcess(train)
+trainS <- predict(scaler, train)
+testS  <- predict(scaler, test)
+
+drop_cols <- c("subject.", "age", "sex", "test_time", "total_UPDRS")
+trainS <- trainS[, !(names(trainS) %in% drop_cols)]
+testS  <- testS[,  !(names(testS)  %in% drop_cols)]
+
+X <- as.matrix(trainS[, colnames(trainS) != "motor_UPDRS"]); y <- trainS$motor_UPDRS
+Xtest <- as.matrix(testS[, colnames(testS) != "motor_UPDRS"]); ytest <- testS$motor_UPDRS
+n <- nrow(X); p <- ncol(X)
+```
+
+## 2. Linear regression
+
+```{r lm, echo=TRUE}
+fit_lm <- lm(motor_UPDRS ~ 0 + ., data = trainS)
+lm_train_mse <- mean((y - predict(fit_lm, trainS))^2)
+lm_test_mse  <- mean((ytest - predict(fit_lm, testS))^2)
+```
+
+```{r lmsig}
+coefs <- summary(fit_lm)$coefficients
+sig <- coefs[coefs[, 4] < 0.05, , drop = FALSE]
+sig <- sig[order(sig[, 4]), , drop = FALSE]
+```
+
+**Training MSE = `r round(lm_train_mse, 4)`, test MSE = `r round(lm_test_mse, 4)`.**
+
+Variables significant at the 5% level (smallest p-value first): `r paste(rownames(sig), collapse = ", ")`. Several voice measures are near copies of each other (e.g. `Jitter.DDP` = 3 x `Jitter.RAP`), so collinearity inflates standard errors and a non-significant variable is not necessarily unimportant. Both MSEs are fairly high, so the voice measures explain only part of the variation in `motor_UPDRS`.
+
+```{r functions, include=FALSE}
+# a) log-likelihood
+Loglikelihood <- function(theta, sigma) {
+  res <- y - X %*% theta
+  -n / 2 * log(2 * pi * sigma^2) - sum(res^2) / (2 * sigma^2)
+}
+
+# b) minus log-likelihood + ridge penalty
+Ridge <- function(theta, sigma, lambda) {
+  -Loglikelihood(theta, sigma) + lambda * sum(theta^2)
+}
+
+# c) optimal theta and sigma for a given lambda
+RidgeOpt <- function(lambda) {
+  obj <- function(par) Ridge(par[1:p], par[p + 1], lambda)
+  opt <- optim(par = c(rep(0, p), 1), fn = obj, method = "BFGS")
+  list(theta = opt$par[1:p], sigma = abs(opt$par[p + 1]),
+       convergence = opt$convergence)
+}
+
+# d) degrees of freedom: trace of the ridge hat matrix
+DF <- function(lambda) {
+  H <- X %*% solve(t(X) %*% X + lambda * diag(p)) %*% t(X)
+  sum(diag(H))
+}
+```
+
+## 4. Ridge regression for $\lambda = 1, 100, 1000$
+
+```{r ridge, include=FALSE}
+lambdas <- c(1, 100, 1000)
+results <- data.frame(lambda = lambdas, train_MSE = NA, test_MSE = NA,
+                      DF = NA, convergence = NA)
+for (i in seq_along(lambdas)) {
+  opt <- RidgeOpt(lambdas[i])
+  results$train_MSE[i]   <- mean((y - X %*% opt$theta)^2)
+  results$test_MSE[i]    <- mean((ytest - Xtest %*% opt$theta)^2)
+  results$DF[i]          <- DF(lambdas[i])
+  results$convergence[i] <- opt$convergence
+}
+```
+
+```{r ridgetab}
+tab <- rbind(data.frame(lambda = 0, train_MSE = lm_train_mse,
+                        test_MSE = lm_test_mse, DF = p, convergence = NA),
+             results)
+best <- results$lambda[which.min(results$test_MSE)]
+knitr::kable(tab[, 1:4], digits = 4, row.names = FALSE,
+             caption = "MSE and degrees of freedom (lambda = 0 is the linear regression from step 2).")
+```
+
+**Most appropriate penalty.** Judged by test MSE, the best of the three is $\lambda =$ **`r best`** (test MSE `r round(min(results$test_MSE), 4)`, versus `r round(lm_test_mse, 4)` without penalty). The training MSE increases with $\lambda$ and cannot be used for this choice.
+
+**Degrees of freedom.** DF is `r paste(round(results$DF, 2), collapse = ", ")` for $\lambda = 1, 100, 1000$, compared with `r p` without penalty. DF falls as $\lambda$ grows: the coefficients are shrunk, so the model becomes simpler. A moderate penalty helps with the collinear features, while too large a penalty underfits.
+
+\newpage
+
