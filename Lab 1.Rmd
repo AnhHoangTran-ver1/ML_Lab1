@@ -308,7 +308,7 @@ n <- nrow(X); p <- ncol(X)
 
 ## 2. Linear regression
 
-```{r lm, echo=TRUE}
+```{r lm}
 fit_lm <- lm(motor_UPDRS ~ 0 + ., data = trainS)
 lm_train_mse <- mean((y - predict(fit_lm, trainS))^2)
 lm_test_mse  <- mean((ytest - predict(fit_lm, testS))^2)
