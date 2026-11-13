@@ -21,7 +21,7 @@ library(caret)
 ## Import the data into R and divide it into training, validation and test sets (50%/25%/25%) by using the partitioning principle specified in the lecture slides.  
 
 ```{r, message=FALSE}
-optdigits <- readr::read_csv("/Users/albinbackstrom/ML AT26 732A99/optdigits.csv", 
+optdigits <- readr::read_csv("optdigits.csv", 
                              col_names = FALSE)
 
 n=dim(optdigits)[1]
@@ -285,7 +285,7 @@ Unlike misclassification error, cross entropy takes predicted probability into a
 The data were split 60/40 into training and test sets with the code from Lecture 1a. They were then scaled with `preProcess`, using means and standard deviations from the **training data only**, applied to both sets. Only the 16 voice characteristics are used as features and `motor_UPDRS` as target. No intercept is used, since the data are centred. MSE values are in standardized units.
 
 ```{r data, include=FALSE}
-data <- read.csv('/Users/albinbackstrom/ML AT26 732A99/parkinsons.csv', header = TRUE)
+data <- read.csv('parkinsons.csv', header = TRUE)
 
 set.seed(12345)
 n <- nrow(data)
@@ -382,12 +382,9 @@ knitr::kable(tab[, 1:4], digits = 4, row.names = FALSE,
 \newpage
 
 # Assignment 3
-## Data
-
-The file `pima-indians-diabetes.csv` has no header row, so the columns are named in the order given in the assignment. The target `diabetes` is converted to a factor.
 
 ```{r data2, include=FALSE}
-df <- read.csv('/Users/albinbackstrom/ML AT26 732A99/pima-indians-diabetes.csv', header = FALSE)
+df <- read.csv('pima-indians-diabetes.csv', header = FALSE)
 names(df) <- c("pregnant", "glucose", "bp", "triceps",
                "insulin", "bmi", "pedigree", "age", "diabetes")
 df$diabetes <- factor(df$diabetes, levels = c(0, 1),
