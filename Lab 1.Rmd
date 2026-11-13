@@ -1,0 +1,619 @@
+---
+title: "Lab 1 (732A99)"
+author: "albba064, tatha821, anhtr209"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    number_sections: true
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(kknn)
+library(knitr)
+library(ggplot2) 
+library(caret)
+```
+
+# Assignment 1.  Handwritten digit recognition with K-nearest neighbors.
+
+## Import the data into R and divide it into training, validation and test sets (50%/25%/25%) by using the partitioning principle specified in the lecture slides.  
+
+```{r, message=FALSE}
+optdigits <- readr::read_csv("/Users/albinbackstrom/ML AT26 732A99/optdigits.csv", 
+                             col_names = FALSE)
+
+n=dim(optdigits)[1]
+set.seed(12345) 
+id=sample(1:n, floor(n*0.5)) 
+train=optdigits[id,] 
+id1=setdiff(1:n, id)
+set.seed(12345) 
+id2=sample(id1, floor(n*0.25)) 
+valid=optdigits[id2,]
+id3=setdiff(id1,id2)
+test=optdigits[id3,]
+```
+
+## Use training data to fit 30-nearest neighbor classifier with function kknn() and kernel=”rectangular” from package kknn and estimate Confusion matrices for the training and test data (use table()) & Misclassification errors for the training and test data
+
+### "Use training data to fit 30-nearest neighbor classifier with function kknn() and kernel=”rectangular” from package kknn" 
+```{r}
+train_kknn <- kknn(as.factor(X65)~., train, train, k = 30, kernel = "rectangular")
+test_kknn <- kknn(as.factor(X65)~., train, test, k = 30, kernel = "rectangular")
+```
+
+### Confusion matrices: 
+
+```{r}
+# Confusion matrix of fitted values from kknn() — train data 
+kable(table(train_kknn$fitted.values, train$X65, 
+            dnn = c("Prediction", "Reference")), 
+      caption = "Confusion matrix, train data")
+
+```
+
+```{r}
+# Confusion matrix of fitted values from kknn() — test data 
+kable(table(test_kknn$fitted.values, test$X65,  
+            dnn = c("Prediction", "Reference")), 
+      caption = "Confusion matrix, test data")
+```
+
+### Misclassification errors for the training and test data:  
+```{r, include = FALSE}
+misclassificationErrors_df <- matrix(c(mean(train_kknn$fitted.values != train$X65), 
+                                       mean(test_kknn$fitted.values != test$X65)), 
+                                     dimnames = list(c("Train", "Test"))) 
+
+kable(misclassificationErrors_df,
+      caption = "Missclassification errors", 
+      row.names = TRUE)
+
+```
+
+## Find any 2 cases of digit “8” in the training data which were...
+
+### ...easiest to classify
+```{r}
+train_8s <- train_kknn$prob[which(train$X65 == '8')]
+kable(t(table(train_8s)), digits = 3, col.names = round(unique(train_8s), digits = 2))
+
+kable(data.frame(c(# find index of highest prob predicted
+which(train$X65 == '8')[which.max(train_8s)] ,
+# find index second highest prob prediction (ie. which == 0.1)
+which(train$X65 == '8')[which(train_8s == 0.1)] ))
+)
+ 
+```
+
+
+### ...3 cases that were hardest to classify 
+
+```{r}
+which(train$X65 == '8')[which(train_8s == 0)][1:3] # indexes of first three obs with pred prob = 0 
+```
+
+
+### Reshape features for each of these cases as matrix 8x8 and visualize the corresponding digits (by using e.g. heatmap())
+
+Used ggplot() with geom_tile() instead of heatmap. 
+**Comment:** The two cases of 8's (index 1503 and 1228 in the training dataset)  are quite easy to visually identify while 
+it is indeed harder to recognize, at least at 8x8 resolution, the three other cases which had indexes 19, 31, 37 in train data and all got a "0" probability 
+from the model. The result therefore seems fair and resonable. 
+```{r, echo=FALSE, message=FALSE}
+
+library(patchwork)
+
+p1 <- ggplot(reshape2::melt(matrix(as.numeric(train[1503, -65]),
+                                   nrow = 8, ncol = 8, byrow = TRUE)),
+             aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = hcl.colors(16, "YlOrRd", rev = TRUE)) +
+  coord_fixed() +
+  theme(legend.position = "none")
+
+p2 <- ggplot(reshape2::melt(matrix(as.numeric(train[1228, -65]),
+                                   nrow = 8, ncol = 8, byrow = TRUE)),
+             aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = hcl.colors(16, "YlOrRd", rev = TRUE)) +
+  coord_fixed() + 
+  theme(legend.position = "none")
+
+p3 <- ggplot(reshape2::melt(matrix(as.numeric(train[19, -65]),
+                                   nrow = 8, ncol = 8, byrow = TRUE)),
+             aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = hcl.colors(16, "YlOrRd", rev = TRUE)) +
+  coord_fixed() + 
+  theme(legend.position = "none")
+
+p4 <- ggplot(reshape2::melt(matrix(as.numeric(train[31, -65]),
+                                   nrow = 8, ncol = 8, byrow = TRUE)),
+             aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = hcl.colors(16, "YlOrRd", rev = TRUE)) +
+  coord_fixed() + 
+  theme(legend.position = "none")
+
+p5 <- ggplot(reshape2::melt(matrix(as.numeric(train[37, -65]),
+                                   nrow = 8, ncol = 8, byrow = TRUE)),
+             aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = hcl.colors(16, "YlOrRd", rev = TRUE)) +
+  coord_fixed() +
+  theme_bw() + 
+  theme(legend.position = "none")
+
+top_row <- (p1 | p2) +
+  plot_annotation(
+    title = "Best 2 predicted 8's",
+    theme = theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+    )
+  )
+
+bottom_row <- (p3 | p4 | p5) +
+  plot_annotation(
+    title = "3 hard 8's",
+    theme = theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+    )
+  )
+
+top_row 
+bottom_row
+```
+
+
+
+
+
+
+
+
+## Fit a K-nearest neighbor classifiers to the training data for different values of K = 1,2,..., 30 and plot the dependence of the training and validation misclassification errors on the value of K.
+
+```{r, echo=FALSE}
+set.seed(12345)
+
+# Fit the models for the training data 
+kknn_models <- lapply(1:30, function(k) {
+  kknn(as.factor(X65) ~ .,
+       train = train,
+       test = train,
+       k = k,
+       kernel = "rectangular")
+})
+
+train_errors <- sapply(kknn_models, function(model) {
+  mean(model$fitted.values != train$X65)
+})
+
+# Fit the models for the validation data 
+kknn_models_val <- lapply(1:30, function(k) {
+  kknn(as.factor(X65) ~ .,
+       train = train,
+       test = valid,
+       k = k,
+       kernel = "rectangular")
+})
+valid_errors <- sapply(kknn_models_val, function(model) {
+  mean(model$fitted.values != valid$X65)
+})
+
+```
+
+```{r, echo=FALSE}
+
+plot(1:30, train_errors,
+     type = "b",
+     col = "blue",
+     ylim = range(c(train_errors, valid_errors)),
+     xlab = "Number of neighbours (K)",
+     ylab = "Misclassification error",
+     main = "KNN Training and Validation Errors", 
+     pch = 16)
+
+lines(1:30, valid_errors,
+      type = "b",
+      col = "red", 
+      pch = 16)
+abline(h = valid_errors[which.min(valid_errors)], v = which.min(valid_errors), lty = 2, col = "darkred")
+
+legend("bottomright",
+       legend = c("Training error", "Validation error", "minimum Val. error"),
+       col = c("blue", "red", "darkred"),
+       lty = c(1, 1, 2),
+       pch = c(16, 16, NA))
+```
+
+Analysis: The model complexity *decreases* as K *increases*, do to the fact that the predictions are based on a larger number of observations. The results in smoother decision bounderies at the cost of flexibility in the model. As observed in the plot of misclassification errors on both train and validation data, the errors increase with K for both datasets; the **smallest misclassification error on validation data was at K = 3**, indicating that a more flexible model (high complexity) using 3 nearest neighbours is more suitable for this data. 
+
+The table [below] shows the misclassification erros at K = 3 evaluated on train, validation and test data respectivly. [The error] for train is more then half that of validation and test data (not necessarily a problem, often expected to be lower at the very least indicate that we didn't underfit). The errors for validation and test data are very similar, which is encouraging and indicates that the model generalizes well to new data and the fact that they both are low (2.4% classification error in test data) shows satisfactory predictive performance. 
+```{r}
+# find optimal k 
+optimal_k <- which.min(valid_errors)
+
+test_kknn <- kknn(as.factor(X65)~., 
+                    train = train, 
+                    test = test, 
+                    k = optimal_k, 
+                    kernel = "rectangular")
+
+test_error <- mean(test_kknn$fitted.values != test$X65)
+
+knitr::kable(data.frame(Train = train_errors[3], Valid = valid_errors[3], Test = test_error), caption = "Misclassification error, K = 3")
+```
+
+## Fit K-nearest neighbor classifiers to the training data for different values of K = 1,2, ..., 30, compute the error for the validation data as cross-entropy  
+```{r}
+valid_errors_CE <- sapply(kknn_models_val, function(model) {
+  
+  probs <- model$prob
+  
+  actual_class <- match(as.character(valid$X65), colnames(probs))
+  
+  actual_probs <- probs[cbind(1:nrow(probs), actual_class)]
+  
+  -mean(log(actual_probs + 1e-15))
+})
+```
+
+### plot the dependence of the validation error on the value of K
+```{r}
+plot(valid_errors_CE)
+```
+
+
+### What is the optimal K value here?
+```{r}
+optimal_k_CE <- which.min(valid_errors_CE)
+```
+The optimal K value when using cross-entropy is `r optimal_k_CE`. 
+
+### Assuming that response has multinomial distribution, why might the cross-entropy be a more suitable choice of the error function than the misclassification error for this problem?
+
+Unlike misclassification error, cross entropy takes predicted probability into account — where it penalizes false classification which have high predicted probability or assigns low probabilities to the true class, and "rewards" *confident* correct predictions. Misclassification on the other hand only checks if the the estimated most probable class is correct; predicting the true class with a probability of 0.51 is worth just the same as if the probability was 0.99. Since KNN makes prediction based on majority vote of probabilities of belonging to the diffrent classes, it may be more suitable to optimize base on cross entropy when we have a multinomial response. 
+
+# Assignment 2: Linear regression and ridge regression
+
+## 1. Data partitioning and scaling
+
+The data were split 60/40 into training and test sets with the code from Lecture 1a. They were then scaled with `preProcess`, using means and standard deviations from the **training data only**, applied to both sets. Only the 16 voice characteristics are used as features and `motor_UPDRS` as target. No intercept is used, since the data are centred. MSE values are in standardized units.
+
+```{r data, include=FALSE}
+data <- read.csv('/Users/albinbackstrom/ML AT26 732A99/parkinsons.csv', header = TRUE)
+
+set.seed(12345)
+n <- nrow(data)
+id <- sample(1:n, floor(n * 0.6))
+train <- data[id, ]
+test  <- data[-id, ]
+
+scaler <- preProcess(train)
+trainS <- predict(scaler, train)
+testS  <- predict(scaler, test)
+
+drop_cols <- c("subject.", "age", "sex", "test_time", "total_UPDRS")
+trainS <- trainS[, !(names(trainS) %in% drop_cols)]
+testS  <- testS[,  !(names(testS)  %in% drop_cols)]
+
+X <- as.matrix(trainS[, colnames(trainS) != "motor_UPDRS"]); y <- trainS$motor_UPDRS
+Xtest <- as.matrix(testS[, colnames(testS) != "motor_UPDRS"]); ytest <- testS$motor_UPDRS
+n <- nrow(X); p <- ncol(X)
+```
+
+## 2. Linear regression
+
+```{r lm, echo=TRUE}
+fit_lm <- lm(motor_UPDRS ~ 0 + ., data = trainS)
+lm_train_mse <- mean((y - predict(fit_lm, trainS))^2)
+lm_test_mse  <- mean((ytest - predict(fit_lm, testS))^2)
+```
+
+```{r lmsig}
+coefs <- summary(fit_lm)$coefficients
+sig <- coefs[coefs[, 4] < 0.05, , drop = FALSE]
+sig <- sig[order(sig[, 4]), , drop = FALSE]
+```
+
+**Training MSE = `r round(lm_train_mse, 4)`, test MSE = `r round(lm_test_mse, 4)`.**
+
+Variables significant at the 5% level (smallest p-value first): `r paste(rownames(sig), collapse = ", ")`. Several voice measures are near copies of each other (e.g. `Jitter.DDP` = 3 x `Jitter.RAP`), so collinearity inflates standard errors and a non-significant variable is not necessarily unimportant. Both MSEs are fairly high, so the voice measures explain only part of the variation in `motor_UPDRS`.
+
+```{r functions, include=FALSE}
+# a) log-likelihood
+Loglikelihood <- function(theta, sigma) {
+  res <- y - X %*% theta
+  -n / 2 * log(2 * pi * sigma^2) - sum(res^2) / (2 * sigma^2)
+}
+
+# b) minus log-likelihood + ridge penalty
+Ridge <- function(theta, sigma, lambda) {
+  -Loglikelihood(theta, sigma) + lambda * sum(theta^2)
+}
+
+# c) optimal theta and sigma for a given lambda
+RidgeOpt <- function(lambda) {
+  obj <- function(par) Ridge(par[1:p], par[p + 1], lambda)
+  opt <- optim(par = c(rep(0, p), 1), fn = obj, method = "BFGS")
+  list(theta = opt$par[1:p], sigma = abs(opt$par[p + 1]),
+       convergence = opt$convergence)
+}
+
+# d) degrees of freedom: trace of the ridge hat matrix
+DF <- function(lambda) {
+  H <- X %*% solve(t(X) %*% X + lambda * diag(p)) %*% t(X)
+  sum(diag(H))
+}
+```
+
+## 4. Ridge regression for $\lambda = 1, 100, 1000$
+
+```{r ridge, include=FALSE}
+lambdas <- c(1, 100, 1000)
+results <- data.frame(lambda = lambdas, train_MSE = NA, test_MSE = NA,
+                      DF = NA, convergence = NA)
+for (i in seq_along(lambdas)) {
+  opt <- RidgeOpt(lambdas[i])
+  results$train_MSE[i]   <- mean((y - X %*% opt$theta)^2)
+  results$test_MSE[i]    <- mean((ytest - Xtest %*% opt$theta)^2)
+  results$DF[i]          <- DF(lambdas[i])
+  results$convergence[i] <- opt$convergence
+}
+```
+
+```{r ridgetab}
+tab <- rbind(data.frame(lambda = 0, train_MSE = lm_train_mse,
+                        test_MSE = lm_test_mse, DF = p, convergence = NA),
+             results)
+best <- results$lambda[which.min(results$test_MSE)]
+knitr::kable(tab[, 1:4], digits = 4, row.names = FALSE,
+             caption = "MSE and degrees of freedom (lambda = 0 is the linear regression from step 2).")
+```
+
+**Most appropriate penalty.** Judged by test MSE, the best of the three is $\lambda =$ **`r best`** (test MSE `r round(min(results$test_MSE), 4)`, versus `r round(lm_test_mse, 4)` without penalty). The training MSE increases with $\lambda$ and cannot be used for this choice.
+
+**Degrees of freedom.** DF is `r paste(round(results$DF, 2), collapse = ", ")` for $\lambda = 1, 100, 1000$, compared with `r p` without penalty. DF falls as $\lambda$ grows: the coefficients are shrunk, so the model becomes simpler. A moderate penalty helps with the collinear features, while too large a penalty underfits.
+
+\newpage
+
+# Assignment 3
+## Data
+
+The file `pima-indians-diabetes.csv` has no header row, so the columns are named in the order given in the assignment. The target `diabetes` is converted to a factor.
+
+```{r data2, include=FALSE}
+df <- read.csv('/Users/albinbackstrom/ML AT26 732A99/pima-indians-diabetes.csv', header = FALSE)
+names(df) <- c("pregnant", "glucose", "bp", "triceps",
+               "insulin", "bmi", "pedigree", "age", "diabetes")
+df$diabetes <- factor(df$diabetes, levels = c(0, 1),
+                      labels = c("No", "Yes"))
+```
+
+## Question 1: Scatterplot of glucose on age
+
+```{r q1}
+ggplot(df, aes(x = age, y = glucose, color = diabetes)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Diabetes") +
+  theme_minimal()
+```
+
+Diabetes does not seem easy to classify with a standard logistic regression using only glucose and age. The classes overlap heavily: "Yes" and "No" points are mixed across the same age and glucose ranges. Higher glucose gives more "Yes" cases, but there is no clear separation, and a logistic regression can only produce a linear decision boundary.
+
+## Question 2: Logistic regression with glucose and age
+
+The model is trained with $y$ = Diabetes as target, $x_1$ = plasma glucose and $x_2$ = age as features. Predictions for all observations use the threshold $r = 0.5$.
+
+```{r q2-fit, include=FALSE}
+fit <- glm(diabetes ~ glucose + age, data = df, family = binomial)
+
+r <- 0.5
+prob <- predict(fit, type = "response")
+df$pred <- factor(ifelse(prob > r, "Yes", "No"), levels = c("No", "Yes"))
+
+w  <- coef(fit)
+w0 <- unname(w["(Intercept)"])
+w1 <- unname(w["glucose"])
+w2 <- unname(w["age"])
+```
+
+### Probabilistic equation of the estimated model
+
+The model assumes $y \mid x_1, x_2 \sim \text{Bernoulli}(\hat{p})$, where
+
+$$
+\hat{p}(y = 1 \mid x_1, x_2) = \frac{1}{1 + \exp\left(-(`r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2)\right)}
+$$
+
+Equivalently, on the log-odds scale,
+
+$$
+\log\frac{\hat{p}}{1 - \hat{p}} = `r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2 .
+$$
+
+An observation is classified as Diabetes = 1 (Yes) if $\hat{p} > 0.5$, which is the same as $`r sprintf("%.4f", w0)` + `r sprintf("%.4f", w1)`\,x_1 + `r sprintf("%.4f", w2)`\,x_2 > 0$.
+
+### Training misclassification error
+
+```{r q2-error}
+conf <- table(Predicted = df$pred, Actual = df$diabetes)
+conf
+miscl_error <- mean(df$pred != df$diabetes)
+miscl_error
+```
+
+### Scatterplot with predicted classes
+
+```{r q2-plot}
+ggplot(df, aes(x = age, y = glucose, color = pred)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+
+- The training misclassification error is `r round(miscl_error, 3)`, so about `r round(100 * miscl_error, 1)`% of the observations are classified incorrectly.
+- Both glucose and age have positive coefficients, so higher glucose and higher age increase the predicted probability of diabetes. Glucose appears to have the stronger effect (larger z-value in `summary(fit)`).
+- The confusion matrix shows `r conf["No", "Yes"]` true "Yes" cases predicted as "No" and `r conf["Yes", "No"]` true "No" cases predicted as "Yes". Thus it is more common to mistake "Yes" for "No" than the opposite.
+- In the predicted-values plot the colors are separated by a straight line, while the true classes in the first plot overlap heavily. A linear decision boundary based on only glucose and age cannot separate the classes well, so the quality of the classification is only moderate. This is why a more flexible model, such as a basis function expansion, is motivated.
+
+## Question 3: Decision boundary
+
+### a) Equation of the decision boundary
+
+The boundary is where $\hat{p} = 0.5$, i.e. $\hat{w}_0 + \hat{w}_1 x_1 + \hat{w}_2 x_2 = 0$. Solving for glucose ($x_1$) as a function of age ($x_2$):
+
+$$
+x_1 = -\frac{\hat{w}_0}{\hat{w}_1} - \frac{\hat{w}_2}{\hat{w}_1}\,x_2
+= `r sprintf("%.4f", -w0 / w1)` + (`r sprintf("%.4f", -w2 / w1)`)\,x_2 .
+$$
+
+### b) Boundary added to the scatterplot
+
+```{r q3-plot}
+ggplot(df, aes(x = age, y = glucose, color = pred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(intercept = -w0 / w1, slope = -w2 / w1,
+              color = "black", linewidth = 1) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+The boundary is a straight line and the true classes overlap on both sides of it. So it does not seem to capture the data distribution well, since there are many misclassified points.
+
+## Question 4: Thresholds r = 0.2 and r = 0.8
+
+For a general threshold $r$, an observation is predicted "Yes" when $\hat{p} > r$, which is equivalent to $\hat{w}_0 + \hat{w}_1 x_1 + \hat{w}_2 x_2 > \log\frac{r}{1-r}$. The boundary line therefore keeps the same slope and only its intercept changes.
+
+```{r q4}
+plot_threshold <- function(r) {
+  pred_r <- factor(ifelse(prob > r, "Yes", "No"), levels = c("No", "Yes"))
+  cat("Threshold r =", r, "\n")
+  print(table(Predicted = pred_r, Actual = df$diabetes))
+  cat("Misclassification error:", mean(pred_r != df$diabetes), "\n\n")
+
+  ggplot(df, aes(x = age, y = glucose, color = pred_r)) +
+    geom_point(alpha = 0.7) +
+    geom_abline(intercept = (log(r / (1 - r)) - w0) / w1,
+                slope = -w2 / w1, color = "black", linewidth = 1) +
+    labs(title = paste("Threshold r =", r),
+         x = "Age (years)", y = "Plasma glucose concentration",
+         color = "Predicted diabetes") +
+    theme_minimal()
+}
+
+print(plot_threshold(0.2))
+print(plot_threshold(0.8))
+
+n_yes_02  <- sum(prob > 0.2)
+n_yes_05  <- sum(prob > 0.5)
+n_yes_08  <- sum(prob > 0.8)
+missed_02 <- sum(prob <= 0.2 & df$diabetes == "Yes")
+missed_08 <- sum(prob <= 0.8 & df$diabetes == "Yes")
+```
+
+The boundary line keeps the same slope and only shifts. For a smaller $r$, the model predicts "Yes" more easily, so more points are predicted as "Yes": `r n_yes_02` observations for $r = 0.2$, compared with `r n_yes_05` for $r = 0.5$. On the other hand, when $r$ gets bigger there are very few "Yes" predictions (`r n_yes_08` for $r = 0.8$), so many true "Yes" cases are missed (`r missed_08` missed for $r = 0.8$, compared with `r missed_02` for $r = 0.2$).
+
+## Question 5: Basis function expansion
+
+New features $z_1 = x_1^4$, $z_2 = x_1^3 x_2$, $z_3 = x_1^2 x_2^2$, $z_4 = x_1 x_2^3$, $z_5 = x_2^4$ are added to the data, and a logistic regression is trained with $x_1, x_2, z_1, \ldots, z_5$ as features.
+
+```{r q5-fit, warning=TRUE}
+add_features <- function(d) {
+  d$z1 <- d$glucose^4
+  d$z2 <- d$glucose^3 * d$age
+  d$z3 <- d$glucose^2 * d$age^2
+  d$z4 <- d$glucose   * d$age^3
+  d$z5 <- d$age^4
+  d
+}
+
+df5 <- add_features(df)
+
+fit5 <- glm(diabetes ~ glucose + age + z1 + z2 + z3 + z4 + z5,
+            data = df5, family = binomial)
+
+prob5 <- predict(fit5, type = "response")
+df5$pred5 <- factor(ifelse(prob5 > 0.5, "Yes", "No"), levels = c("No", "Yes"))
+
+conf5 <- table(Predicted = df5$pred5, Actual = df5$diabetes)
+conf5
+miscl_error5 <- mean(df5$pred5 != df5$diabetes)
+miscl_error5
+```
+
+### Scatterplot with the curved decision boundary
+
+The black curve is the contour where $\hat{p} = 0.5$.
+
+```{r q5-plot}
+grid <- expand.grid(
+  age     = seq(min(df5$age), max(df5$age), length.out = 200),
+  glucose = seq(min(df5$glucose), max(df5$glucose), length.out = 200))
+grid <- add_features(grid)
+grid$prob5 <- predict(fit5, newdata = grid, type = "response")
+
+ggplot(df5, aes(x = age, y = glucose, color = pred5)) +
+  geom_point(alpha = 0.7) +
+  geom_contour(data = grid, aes(x = age, y = glucose, z = prob5),
+               breaks = 0.5, color = "black", inherit.aes = FALSE) +
+  labs(x = "Age (years)", y = "Plasma glucose concentration",
+       color = "Predicted diabetes") +
+  theme_minimal()
+```
+
+
+
+```{r q5-numbers, include=FALSE}
+wrong_lin <- sum(df$pred != df$diabetes)
+wrong_exp <- sum(df5$pred5 != df5$diabetes)
+```
+
+The training misclassification error is `r round(miscl_error5, 3)` for the model with the basis expansion, compared with `r round(miscl_error, 3)` for the linear model. So the accuracy improved slightly (`r wrong_lin - wrong_exp` fewer misclassified observations out of `r nrow(df)`). The model finds more of the true "Yes" cases (`r conf5["Yes", "Yes"]` instead of `r conf["Yes", "Yes"]` correct), while the number of false "Yes" predictions stays about the same (`r conf5["Yes", "No"]` vs `r conf["Yes", "No"]`).
+
+The decision boundary is no longer a straight line. It is curved and non-monotonic in age: young people need a high glucose value to be predicted "Yes", the threshold is lowest around age 45-50, and then it rises steeply for older ages. This lets the model follow the data distribution more closely.
+
+However, the improvement is small and the classes still overlap heavily, so many points remain misclassified. The flexible boundary also creates a spurious "Yes" region in the lower right, where there is almost no data, which indicates a risk of overfitting. Since this is a training error, the improvement may partly be overfitting, so the extra complexity is not clearly worth it.
+
+# Assignment 4 
+## Why can it be important to consider various probability thresholds in the classification problems, according to the book? 
+
+According to MLFC (page 53), considering various probability threshold may be important because different classification problems may have different priorities. For example, a threshold of 0.5 minimises the expected misclassification rate when the model correctly estimates the class probabilities, this is not always the most desirable outcome. Problem can be asymmetric, such as medical diagnosis, where incorrectly classifying a sick patient as healthy may be much more serious than the opposite error. Additionaly in problem that are imbalanced— when one class is much more common than another— misclassification rate can favour the majority class. By adjusting the probability threshold, we can prioritise certain types of errors and achieve a classification performance better suited to the specific problem. 
+
+
+## What ways of collecting correct values of the target variable for the supervised learning problems are mentioned in the book?
+The book mentions several ways of obtaining the correct target values. One is manual labelling by a domain expert, for example cardiologists labelling ECG signals (page 3, 16) or pixels in images labelled by hand for segmentation (page 8). Another is computing them automatically, even if costly, as in the formation-energy example where density functional theory calculations provided the outputs (page 6). A third is getting them directly when the data is collected, such as match results from historical soccer matches or prices from historical apartment sales (page 6), or simply recording x and y jointly (page 16). Finally, in self-supervised learning the targets come from the data itself, for example using the next value of a time series as the output (page 38, 39).
+
+
+## How can one express the cost function of the linear regression in the matrix form, according to the book?
+
+### Cost function (p. 44)
+Based on the chosen loss function, we also define the cost function as the average loss over the training data. Training a model then amounts to finding the parameter values that minimise the cost.
+
+$$
+J(\boldsymbol{\theta}) = \frac{1}{n}\sum_{i=1}^{n} L\big(\hat{y}(\mathbf{x}_i;\boldsymbol{\theta}),\, y_i\big)
+$$
+
+### Matrix form (p. 45, equation 3.11)
+
+The matrix form of the cost function for the linear regression model is the following:
+
+$$
+\begin{aligned}
+J(\boldsymbol{\theta})
+&= \frac{1}{n}\sum_{i=1}^{n}\big(\hat{y}(\mathbf{x}_i;\boldsymbol{\theta}) - y_i\big)^2
+ = \frac{1}{n}\lVert \hat{\mathbf{y}} - \mathbf{y} \rVert_2^2 \\
+&= \frac{1}{n}\lVert \mathbf{X}\boldsymbol{\theta} - \mathbf{y} \rVert_2^2
+ = \frac{1}{n}\lVert \boldsymbol{\epsilon} \rVert_2^2,
+\end{aligned}
+$$
+
+where $\lVert \cdot \rVert_2$ denotes the usual Euclidean vector norm and $\lVert \cdot \rVert_2^2$ its square, and $\boldsymbol{\epsilon} = \hat{\mathbf{y}} - \mathbf{y}$ is the vector of residuals.
