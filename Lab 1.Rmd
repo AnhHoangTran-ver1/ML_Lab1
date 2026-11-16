@@ -54,7 +54,7 @@ kable(table(train_kknn$fitted.values, train$X65,
 
 ```
 \newpage
-```{r}
+```{r A13b}
 # Confusion matrix of fitted values from kknn() — test data 
 kable(table(test_kknn$fitted.values, test$X65,  
             dnn = c("Prediction", "Reference")), 
