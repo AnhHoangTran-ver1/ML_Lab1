@@ -284,7 +284,7 @@ Unlike misclassification error, cross entropy takes predicted probability into a
 
 # Assignment 2: Linear regression and ridge regression
 
-## 1. Data partitioning and scaling
+## Data partitioning and scaling
 
 The data were split 60/40 into training and test sets with the code from Lecture 1a. They were then scaled with `preProcess`, using means and standard deviations from the **training data only**, applied to both sets. Only the 16 voice characteristics are used as features and `motor_UPDRS` as target. No intercept is used, since the data are centred. MSE values are in standardized units.
 
@@ -310,7 +310,7 @@ Xtest <- as.matrix(testS[, colnames(testS) != "motor_UPDRS"]); ytest <- testS$mo
 n <- nrow(X); p <- ncol(X)
 ```
 
-## 2. Linear regression
+##  Linear regression
 
 ```{r lm}
 fit_lm <- lm(motor_UPDRS ~ 0 + ., data = trainS)
@@ -355,7 +355,7 @@ DF <- function(lambda) {
 }
 ```
 
-## 4. Ridge regression for $\lambda = 1, 100, 1000$
+## Ridge regression for $\lambda = 1, 100, 1000$
 
 ```{r ridge, include=FALSE}
 lambdas <- c(1, 100, 1000)
