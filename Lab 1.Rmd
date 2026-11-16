@@ -20,9 +20,8 @@ library(caret)
 
 ## Import the data into R and divide it into training, validation and test sets (50%/25%/25%) by using the partitioning principle specified in the lecture slides.  
 
-<<<<<<< HEAD
 ```{r A11, message=FALSE}
-optdigits <- readr::read_csv("/Users/albinbackstrom/ML AT26 732A99/optdigits.csv", 
+optdigits <- readr::read_csv("optdigits.csv", 
                              col_names = FALSE)
 
 n=dim(optdigits)[1]
@@ -622,7 +621,24 @@ where $\lVert \cdot \rVert_2$ denotes the usual Euclidean vector norm and $\lVer
 
 \newpage
 # Appendix
-```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
 
-```
+## Setup
+
+````{r, ref.label="setup", echo=TRUE, eval=FALSE}
+````
+
+## Assignment 1: K-nearest neighbors
+
+````{r, ref.label=c("A11","A12","A13","A13b","A14","A15","A16","A17","A110","A111","A112","A113","A114","A115"), echo=TRUE, eval=FALSE}
+````
+
+## Assignment 2: Linear and ridge regression
+
+````{r, ref.label=c("data","lm","lmsig","functions","ridge","ridgetab"), echo=TRUE, eval=FALSE}
+````
+
+## Assignment 3: Logistic regression and basis function expansion
+
+````{r, ref.label=c("data2","q1","q2-fit","q2-error","q2-plot","q3-plot","q4","q5-fit","q5-plot","q5-numbers"), echo=TRUE, eval=FALSE}
+````
 
