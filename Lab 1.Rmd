@@ -82,18 +82,18 @@ Comment: The overall misclassification errors on both train and test data are sa
 ### ...easiest to classify
 ```{r A15}
 train_8s <- train_kknn$prob[which(train$X65 == '8')]
-kable(t(table(train_8s)), digits = 3, col.names = round(unique(train_8s), digits = 2))
+kable(t(table(train_8s)), digits = 3, col.names = round(unique(train_8s), digits = 2), caption = "Table of probs for 8's in train")
 
 kable(data.frame(c(# find index of highest prob predicted
 which(train$X65 == '8')[which.max(train_8s)] ,
 # find index second highest prob prediction (ie. which == 0.1)
 which(train$X65 == '8')[which(train_8s == 0.1)] ))
-)
+, caption = "Indexes of two best 8's")
  
 ```
 
 
-### ...3 cases that were hardest to classify 
+### ...3 cases that were hardest to classify (Indexs)
 
 ```{r A16}
 which(train$X65 == '8')[which(train_8s == 0)][1:3] # indexes of first three obs with pred prob = 0 
@@ -289,7 +289,7 @@ Unlike misclassification error, cross entropy takes predicted probability into a
 The data were split 60/40 into training and test sets with the code from Lecture 1a. They were then scaled with `preProcess`, using means and standard deviations from the **training data only**, applied to both sets. Only the 16 voice characteristics are used as features and `motor_UPDRS` as target. No intercept is used, since the data are centred. MSE values are in standardized units.
 
 ```{r data, include=FALSE}
-data <- read.csv('parkinsons.csv', header = TRUE)
+data <- read.csv("/Users/albinbackstrom/ML_Lab1/parkinsons.csv", header = TRUE)
 
 set.seed(12345)
 n <- nrow(data)
@@ -388,7 +388,7 @@ knitr::kable(tab[, 1:4], digits = 4, row.names = FALSE,
 # Assignment 3
 
 ```{r data2, include=FALSE}
-df <- read.csv('pima-indians-diabetes.csv', header = FALSE)
+df <- read.csv("/Users/albinbackstrom/ML_Lab1/pima-indians-diabetes.csv", header = FALSE)
 names(df) <- c("pregnant", "glucose", "bp", "triceps",
                "insulin", "bmi", "pedigree", "age", "diabetes")
 df$diabetes <- factor(df$diabetes, levels = c(0, 1),
