@@ -20,7 +20,7 @@ library(caret)
 
 ## Import the data into R and divide it into training, validation and test sets (50%/25%/25%) by using the partitioning principle specified in the lecture slides.  
 
-```{r, message=FALSE}
+```{r A11, message=FALSE}
 optdigits <- readr::read_csv("/Users/albinbackstrom/ML AT26 732A99/optdigits.csv", 
                              col_names = FALSE)
 
@@ -39,14 +39,14 @@ test=optdigits[id3,]
 ## Use training data to fit 30-nearest neighbor classifier with function kknn() and kernel=”rectangular” from package kknn and estimate Confusion matrices for the training and test data (use table()) & Misclassification errors for the training and test data
 
 ### "Use training data to fit 30-nearest neighbor classifier with function kknn() and kernel=”rectangular” from package kknn" 
-```{r}
+```{r, A12}
 train_kknn <- kknn(as.factor(X65)~., train, train, k = 30, kernel = "rectangular")
 test_kknn <- kknn(as.factor(X65)~., train, test, k = 30, kernel = "rectangular")
 ```
 
 ### Confusion matrices: 
 
-```{r}
+```{r A13}
 # Confusion matrix of fitted values from kknn() — train data 
 kable(table(train_kknn$fitted.values, train$X65, 
             dnn = c("Prediction", "Reference")), 
@@ -62,7 +62,7 @@ kable(table(test_kknn$fitted.values, test$X65,
 ```
 
 ### Misclassification errors for the training and test data:  
-```{r, include = FALSE}
+```{r A14, include = FALSE}
 misclassificationErrors_df <- matrix(c(mean(train_kknn$fitted.values != train$X65), 
                                        mean(test_kknn$fitted.values != test$X65)), 
                                      dimnames = list(c("Train", "Test"))) 
@@ -76,7 +76,7 @@ kable(misclassificationErrors_df,
 ## Find any 2 cases of digit “8” in the training data which were...
 
 ### ...easiest to classify
-```{r}
+```{r A15}
 train_8s <- train_kknn$prob[which(train$X65 == '8')]
 kable(t(table(train_8s)), digits = 3, col.names = round(unique(train_8s), digits = 2))
 
@@ -91,7 +91,7 @@ which(train$X65 == '8')[which(train_8s == 0.1)] ))
 
 ### ...3 cases that were hardest to classify 
 
-```{r}
+```{r A16}
 which(train$X65 == '8')[which(train_8s == 0)][1:3] # indexes of first three obs with pred prob = 0 
 ```
 
@@ -102,7 +102,7 @@ Used ggplot() with geom_tile() instead of heatmap.
 **Comment:** The two cases of 8's (index 1503 and 1228 in the training dataset)  are quite easy to visually identify while 
 it is indeed harder to recognize, at least at 8x8 resolution, the three other cases which had indexes 19, 31, 37 in train data and all got a "0" probability 
 from the model. The result therefore seems fair and resonable. 
-```{r, echo=FALSE, message=FALSE}
+```{r, A17, echo=FALSE, message=FALSE}
 
 library(patchwork)
 
@@ -163,7 +163,16 @@ bottom_row <- (p3 | p4 | p5) +
     )
   )
 
+
+```
+
+#### Two easy: 
+```{r, A18}
 top_row 
+```
+
+#### 3 hard: 
+```{r, A19}
 bottom_row
 ```
 
@@ -172,11 +181,9 @@ bottom_row
 
 
 
-
-
 ## Fit a K-nearest neighbor classifiers to the training data for different values of K = 1,2,..., 30 and plot the dependence of the training and validation misclassification errors on the value of K.
 
-```{r, echo=FALSE}
+```{r, A110, echo=FALSE}
 set.seed(12345)
 
 # Fit the models for the training data 
@@ -206,7 +213,7 @@ valid_errors <- sapply(kknn_models_val, function(model) {
 
 ```
 
-```{r, echo=FALSE}
+```{r, A111, echo=FALSE}
 
 plot(1:30, train_errors,
      type = "b",
@@ -233,7 +240,7 @@ legend("bottomright",
 Analysis: The model complexity *decreases* as K *increases*, do to the fact that the predictions are based on a larger number of observations. The results in smoother decision bounderies at the cost of flexibility in the model. As observed in the plot of misclassification errors on both train and validation data, the errors increase with K for both datasets; the **smallest misclassification error on validation data was at K = 3**, indicating that a more flexible model (high complexity) using 3 nearest neighbours is more suitable for this data. 
 
 The table [below] shows the misclassification erros at K = 3 evaluated on train, validation and test data respectivly. [The error] for train is more then half that of validation and test data (not necessarily a problem, often expected to be lower at the very least indicate that we didn't underfit). The errors for validation and test data are very similar, which is encouraging and indicates that the model generalizes well to new data and the fact that they both are low (2.4% classification error in test data) shows satisfactory predictive performance. 
-```{r}
+```{r, A112}
 # find optimal k 
 optimal_k <- which.min(valid_errors)
 
@@ -249,7 +256,7 @@ knitr::kable(data.frame(Train = train_errors[3], Valid = valid_errors[3], Test =
 ```
 
 ## Fit K-nearest neighbor classifiers to the training data for different values of K = 1,2, ..., 30, compute the error for the validation data as cross-entropy  
-```{r}
+```{r, A113}
 valid_errors_CE <- sapply(kknn_models_val, function(model) {
   
   probs <- model$prob
@@ -263,13 +270,13 @@ valid_errors_CE <- sapply(kknn_models_val, function(model) {
 ```
 
 ### plot the dependence of the validation error on the value of K
-```{r}
+```{r, A114}
 plot(valid_errors_CE)
 ```
 
 
 ### What is the optimal K value here?
-```{r}
+```{r, A115}
 optimal_k_CE <- which.min(valid_errors_CE)
 ```
 The optimal K value when using cross-entropy is `r optimal_k_CE`. 
@@ -617,3 +624,10 @@ J(\boldsymbol{\theta})
 $$
 
 where $\lVert \cdot \rVert_2$ denotes the usual Euclidean vector norm and $\lVert \cdot \rVert_2^2$ its square, and $\boldsymbol{\epsilon} = \hat{\mathbf{y}} - \mathbf{y}$ is the vector of residuals.
+
+\newpage
+# Appendix
+```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+
+```
+
